@@ -29,23 +29,11 @@ public:
     void stopping(const ros::Time &time1) override;
     void updateFTsensor(const geometry_msgs::WrenchStamped::ConstPtr &msg);
     double first_order_lowpass_filter();
-    /** @brief Get array of dh parameters for the panda robot. Order: theta, d, a, alpha */
-    std::array<std::array<double, 4>, 7> getDHParameters() const;
-
     /** @brief Compute Jacobian analytically for the given robot configuration q and a reference frame r specified w.r.t. ee */
-    Eigen::Matrix<double, 6, 7> computeJacobian(const Eigen::VectorXd &q, const Eigen::Vector3d &r = Eigen::Vector3d::Zero()) const;
     Eigen::MatrixXd calculateJacobian(Eigen::VectorXd &q_in);
     /** @brief Compute direct kinematics for the given joint angles q. Assume ee is offseted by vector r. */
-    Eigen::Affine3d dkt(const Eigen::VectorXd &q, const Eigen::Vector3d &r = Eigen::Vector3d::Zero()) const;
     Eigen::Matrix4d forwardKinematic(Eigen::VectorXd &q, int start, int end);
-    /**
-    * @brief Return affine transformation from DH parameters
-    * @param theta rotation around z axis
-    * @param d translation in z axis
-    * @param a translation in x axis
-    * @param alpha rotation around x axis
-    * @return Rz * Tz * Tx * Rx  */
-    static Eigen::Affine3d DH(double theta, double d, double a, double alpha);
+
 
 private:
     constexpr static size_t NUM_OF_JOINTS = 7;

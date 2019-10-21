@@ -4,6 +4,9 @@
  *     Author: Vladimir Petrik <vladimir.petrik@aalto.fi>
  */
 
+ #include <std_srvs/Empty.h>
+ #include <chrono>
+
 #include <exercise5/Exercise5Controller.h>
 #include <pluginlib/class_list_macros.h>
 #include <ros/ros.h>
@@ -14,7 +17,7 @@ Eigen::Matrix<double,6,1> f_current;
 double tau_ = 1.0/(2*3.14*9.0);
 double filt_old_ = 0.0;
 double filt_ = 0.0;
-double delta_time = 20;
+double delta_time = 0.002;
 double f_cur_buffer_ = 0.0;
 Eigen::VectorXd initial_pose_save(7);
 
@@ -74,11 +77,14 @@ void Exercise5Controller::update(const ros::Time &time, const ros::Duration &per
    Eigen::VectorXd q_current(7),q_vel(7);
    for (int i = 0; i < 7; ++i){
        q_current(i) =  joints[i].getPosition();
+       q_vel(i) = joints[i].getVelocity();
    }
    //// calculate jacobian
    Eigen::MatrixXd J = calculateJacobian(q_current);
-
-   //// forward kinematics
+   Eigen::Matrix<double,6,1> twist = J*q_vel;
+   Eigen::VectorXd twist_pos(3);
+   twist_pos << twist(0), twist(1), twist(2);
+      //// forward kinematics
    Eigen::Matrix4d T09; // transformation matrix of frame 7 relative to frame 0 (world frame)
    T09 = forwardKinematic(q_current, 0, 9);
    Eigen::VectorXd pos_current(3); // current position of end effector
@@ -104,67 +110,52 @@ void Exercise5Controller::update(const ros::Time &time, const ros::Duration &per
    kd_pos.setIdentity();
    kp_ori.setIdentity();
    kd_ori.setIdentity();
-   // K_damp.setIdentity();
-   // K_damp *= 5;
-   // kp_pos(0,0)= 10000;
-   // kp_pos(1,1)= 10000;
+
    kp_pos(0,0)= 2000;
    kp_pos(1,1)= 2000;
-   kp_pos(2,2)= 5;
-   // kd_pos *= 2.5;
+   kp_pos(2,2)= 300; //works
+
    kp_ori *= 1000;
-   // kd_ori *= 25;
 
    // force controls
    Eigen::Matrix<double, 6,6> kp_force,ki_force;
    kp_force.setIdentity();
    ki_force.setIdentity();
-   kp_force *= 0.001;
-   ki_force *= 0.0001;
+   kp_force *= 0.01;
+   ki_force *= 0.01;
 
    // loop control
    //// force controller to update next position
    Eigen:: Matrix<double,6,1> f_desired; // error in ft
    Eigen:: Matrix<double,6,1> err_force; // error in ft
-   f_desired << 0,0,-5,0,0,0;
+   f_desired << 0,0,-10,0,0,0;
    err_force = f_desired - f_current;
    err_force_int += err_force*delta_time;
 
    Eigen::VectorXd force_ctrl(6);
-   force_ctrl = kp_force*err_force + ki_force*err_force_int;
+   force_ctrl = (kp_force*err_force + ki_force*err_force_int)*pos_desired[2];
+   // force_ctrl = kp_force*err_force*pos_desired[2];
+
    //// calculate new pos
    // in global frame
    pos_desired[2] += force_ctrl[2];
 
    std::cout << "f_current: " << f_current[2] << std::endl;
    std::cout << "err_force: " << err_force[2] << std::endl;
-   // std::cout << "f_current: " << f_current.transpose() << std::endl;
 
    //// motion control
    Eigen::VectorXd err_pos(3); err_pos.setZero(); // error in position
    Eigen::Quaterniond err_quat; // error in orientation (quaternion)
-   Eigen::Quaterniond err_quat_dot; // error_dot in orientation (quaternion)
    Eigen::VectorXd err_ori(3); // error in orientation
-   Eigen::VectorXd err_ori_dot(3); // error_dot in orientation
-   Eigen::VectorXd err_pos_dot(3); // error_dot in orientation
-   Eigen::VectorXd prev_err_pos(3); // error_dot in orientation
-   Eigen::Quaterniond prev_err_quat; // error in orientation (quaternion)
 
    err_pos = pos_desired - pos_current;
+   err_quat = quat_desired * quat_current.inverse();
+   err_ori[0] = err_quat.x(); err_ori[1] = err_quat.y(); err_ori[2] = err_quat.z();
    std::cout << "err_pos: " << err_pos.transpose() << std::endl;
    std::cout << "err_ori: " << err_ori.transpose() << std::endl;
 
-   err_quat = quat_desired * quat_current.inverse();
-   err_ori[0] = err_quat.x(); err_ori[1] = err_quat.y(); err_ori[2] = err_quat.z();
-
-   err_pos_dot = (err_pos - prev_err_pos) / delta_time;
-   err_quat_dot = err_quat * prev_err_quat.inverse();
-   err_ori_dot[0] = err_quat_dot.x() / delta_time; err_ori_dot[1] = err_quat_dot.y() / delta_time; err_ori_dot[2] = err_quat_dot.z() / delta_time;
-
    Eigen::VectorXd Fp(3); // position part of impedance controller in task space
    Eigen::VectorXd Fr(3); // orientation part of impedance controller in task space
-   // Fp = kp_pos*err_pos + kd_pos*err_pos_dot;
-   // Fr = kp_ori*err_ori + kd_ori*err_ori_dot;
    Fp = kp_pos*err_pos ;
    Fr = kp_ori*err_ori ;
 
@@ -188,13 +179,7 @@ void Exercise5Controller::update(const ros::Time &time, const ros::Duration &per
    for (size_t i = 0; i < joints.size(); ++i) {
       joints[i].setCommand(tau[i]);
     }
-   //// update previous terms
-   prev_err_pos = err_pos;
-   prev_err_quat = err_quat;
-
    std::cout << " -------- \n";
-
-
 }
 
 
@@ -202,52 +187,6 @@ void Exercise5Controller::stopping(const ros::Time &time1) {
     ControllerBase::stopping(time1);
 }
 
-Eigen::Affine3d Exercise5Controller::dkt(const Eigen::VectorXd &q, const Eigen::Vector3d &r) const {
-    Eigen::Affine3d T = Eigen::Affine3d::Identity();
-    const auto DHparams = getDHParameters();
-    for (size_t i = 0; i < NUM_OF_JOINTS; ++i) {
-        T = T * DH(DHparams[i][0] + q[i], DHparams[i][1], DHparams[i][2], DHparams[i][3]);
-    }
-    return T * Eigen::Translation3d(0.0, 0.0, 0.0) * Eigen::Translation3d(r);
-}
-
-Eigen::Affine3d Exercise5Controller::DH(double theta, double d, double a, double alpha) {
-    return Eigen::AngleAxisd(theta, Eigen::Vector3d::UnitZ()) *
-           Eigen::Translation3d(a, 0, d) *
-           Eigen::AngleAxisd(alpha, Eigen::Vector3d::UnitX());
-}
-
-std::array<std::array<double, 4>, 7> Exercise5Controller::getDHParameters() const {
-    const std::array<std::array<double, 4>, NUM_OF_JOINTS> dh = {{
-                                                                         {0, 0.333, 0, -M_PI_2},
-                                                                         {0, 0, 0, M_PI_2},
-                                                                         {0, 0.316, 0.0825, M_PI_2},
-                                                                         {0, 0, -0.0825, -M_PI_2},
-                                                                         {0, 0.384, 0.0, M_PI_2},
-                                                                         {0, 0, 0.088, M_PI_2},
-                                                                         {0, 0.107, 0.0, 0.0}
-                                                                 }};
-    return dh;
-}
-
-Eigen::Matrix<double, 6, 7>
-Exercise5Controller::computeJacobian(const Eigen::VectorXd &q, const Eigen::Vector3d &ref) const {
-    Eigen::Matrix<double, 6, 7> jac;
-    Eigen::Affine3d Tee = dkt(q, ref);
-    Eigen::Affine3d T = Eigen::Affine3d::Identity();
-
-    const auto DHparams = getDHParameters();
-    for (size_t i = 0; i < NUM_OF_JOINTS; ++i) {
-        const Eigen::Vector3d n = T.linear() * Eigen::Vector3d::UnitZ(); //n_i
-        const Eigen::Vector3d r = (Tee.translation() - T.translation());
-        const Eigen::Vector3d dr = n.cross(r);
-        jac.block(0, i, 3, 1) = dr;
-        jac.block(3, i, 3, 1) = n;
-        T = T * DH(DHparams[i][0] + q[i], DHparams[i][1], DHparams[i][2], DHparams[i][3]);
-    }
-
-    return jac;
-}
 Eigen::Matrix4d Exercise5Controller::forwardKinematic(Eigen::VectorXd &q, int start, int end)
 {
     /*

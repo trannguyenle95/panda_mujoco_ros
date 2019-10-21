@@ -25,10 +25,10 @@ int main(int argc, char **argv) {
     // const auto goal_state = r.getStateFromJointValues({ 0, 0.11, 0, -2.4, 0, 2.54, 0.84});
     const auto goal_state = r.getStateFromJointValues({0, 0.688, 0, -1.6, 0, 2.25, 0.75});
 
-    const auto plan = r.planBetweenStates(start_state, goal_state);
-    if (plan.joint_trajectory.points.empty()) { // cannot plan
-        return -1;
-    }
+    // const auto plan = r.planBetweenStates(start_state, goal_state);
+    // if (plan.joint_trajectory.points.empty()) { // cannot plan
+    //     return -1;
+    // }
 
     //Create callback for joint_state message; Save end effector position and force into the file f
     auto state = r.getCurrentState();
@@ -64,11 +64,11 @@ int main(int argc, char **argv) {
     };
     const auto sub_js = node.subscribe<sensor_msgs::JointState>("/joint_states", 1, cb_js);
 
-    r.visualiseTrajectory(plan);
-    if (!r.executeTrajectory(plan)) {
-        ROS_ERROR_STREAM("Cannot execute trajectory");
-        return -1;
-    }
+    // r.visualiseTrajectory(plan);
+    // if (!r.executeTrajectory(plan)) {
+    //     ROS_ERROR_STREAM("Cannot execute trajectory");
+    //     return -1;
+    // }
 
       r.loadController("exercise5_controller"); //load exercise5 controller
       r.switchControllers({"trajectory_controller"},
