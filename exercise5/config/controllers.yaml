@@ -1,6 +1,6 @@
 
-exercise5_controller:
-  type: exercise5/Exercise5Controller
+force_controller:
+  type: exercise5/ForceController
 
   joints:
     - lumi_joint1

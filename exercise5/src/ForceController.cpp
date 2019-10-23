@@ -4,10 +4,7 @@
  *     Author: Vladimir Petrik <vladimir.petrik@aalto.fi>
  */
 
- #include <std_srvs/Empty.h>
- #include <chrono>
-
-#include <exercise5/Exercise5Controller.h>
+#include <exercise5/ForceController.h>
 #include <pluginlib/class_list_macros.h>
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -21,9 +18,9 @@ double delta_time = 0.002;
 double f_cur_buffer_ = 0.0;
 Eigen::VectorXd initial_pose_save(7);
 
-bool Exercise5Controller::init(hardware_interface::EffortJointInterface *hw, ros::NodeHandle &handle) {
+bool ForceController::init(hardware_interface::EffortJointInterface *hw, ros::NodeHandle &handle) {
     const auto names = hw->getNames();
-    sub_forcetorque_sensor_ = handle.subscribe<geometry_msgs::WrenchStamped>("/lumi_mujoco/array", 1, &Exercise5Controller::updateFTsensor, this,ros::TransportHints().reliable().tcpNoDelay());
+    sub_forcetorque_sensor_ = handle.subscribe<geometry_msgs::WrenchStamped>("/lumi_mujoco/array", 1, &ForceController::updateFTsensor, this,ros::TransportHints().reliable().tcpNoDelay());
     for (size_t i = 0; i < joints.size(); ++i) {
         const auto jname = std::string("lumi_joint") + std::to_string(i + 1);
         if (std::find(names.begin(), names.end(), jname) == names.end()) {
@@ -40,7 +37,7 @@ bool Exercise5Controller::init(hardware_interface::EffortJointInterface *hw, ros
     return Controller::init(hw, handle);
 }
 
-void Exercise5Controller::starting(const ros::Time &time1) {
+void ForceController::starting(const ros::Time &time1) {
     err_force_int.setZero(); //reset integration term
     f_current.setZero();
     for (int i = 0; i < 7; ++i){
@@ -48,7 +45,7 @@ void Exercise5Controller::starting(const ros::Time &time1) {
     }
     ControllerBase::starting(time1);
 }
-void Exercise5Controller::updateFTsensor(const geometry_msgs::WrenchStamped::ConstPtr &msg){
+void ForceController::updateFTsensor(const geometry_msgs::WrenchStamped::ConstPtr &msg){
   geometry_msgs::Wrench f_meas = msg->wrench;
 	f_current(0) = f_meas.force.x;
   f_current(1) = f_meas.force.y;
@@ -60,13 +57,13 @@ void Exercise5Controller::updateFTsensor(const geometry_msgs::WrenchStamped::Con
   f_current(2) = first_order_lowpass_filter();
   // std::cout << "f current :\n"<< f_current.transpose()<< std::endl;
 }
-double Exercise5Controller::first_order_lowpass_filter()
+double ForceController::first_order_lowpass_filter()
 {
     filt_ = (tau_ * filt_old_ + delta_time*f_cur_buffer_)/(tau_ + delta_time);
     filt_old_ = filt_;
     return filt_;
 }
-void Exercise5Controller::update(const ros::Time &time, const ros::Duration &period) {
+void ForceController::update(const ros::Time &time, const ros::Duration &period) {
   // initial_pose << 0, 0.688, 0, -1.6, 0, 2.25, 0.75;
   // initial_pose << 0, 0.11, 0, -2.4, 0, 2.54, 0.84;
   Eigen::VectorXd initial_pose(7);
@@ -121,8 +118,8 @@ void Exercise5Controller::update(const ros::Time &time, const ros::Duration &per
    Eigen::Matrix<double, 6,6> kp_force,ki_force;
    kp_force.setIdentity();
    ki_force.setIdentity();
-   kp_force *= 0.01;
-   ki_force *= 0.01;
+   kp_force *= 0.005;
+   ki_force *= 0.005;
 
    // loop control
    //// force controller to update next position
@@ -133,7 +130,7 @@ void Exercise5Controller::update(const ros::Time &time, const ros::Duration &per
    err_force_int += err_force*delta_time;
 
    Eigen::VectorXd force_ctrl(6);
-   force_ctrl = (kp_force*err_force + ki_force*err_force_int)*pos_desired[2];
+   force_ctrl = kp_force*err_force + ki_force*err_force_int;
    // force_ctrl = kp_force*err_force*pos_desired[2];
 
    //// calculate new pos
@@ -183,11 +180,11 @@ void Exercise5Controller::update(const ros::Time &time, const ros::Duration &per
 }
 
 
-void Exercise5Controller::stopping(const ros::Time &time1) {
+void ForceController::stopping(const ros::Time &time1) {
     ControllerBase::stopping(time1);
 }
 
-Eigen::Matrix4d Exercise5Controller::forwardKinematic(Eigen::VectorXd &q, int start, int end)
+Eigen::Matrix4d ForceController::forwardKinematic(Eigen::VectorXd &q, int start, int end)
 {
     /*
      * This function calculate forward kinematics for panda.
@@ -227,7 +224,7 @@ Eigen::Matrix4d Exercise5Controller::forwardKinematic(Eigen::VectorXd &q, int st
     }
     return Ttemp;
 }
-Eigen::MatrixXd Exercise5Controller::calculateJacobian(Eigen::VectorXd &q_in)
+Eigen::MatrixXd ForceController::calculateJacobian(Eigen::VectorXd &q_in)
 {
     /*
      * This function is provided by Dr. Fares Abu-Dakka
@@ -377,4 +374,4 @@ Eigen::MatrixXd Exercise5Controller::calculateJacobian(Eigen::VectorXd &q_in)
 
     return Jtilde;
 }
-PLUGINLIB_EXPORT_CLASS(Exercise5Controller, controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(ForceController, controller_interface::ControllerBase)

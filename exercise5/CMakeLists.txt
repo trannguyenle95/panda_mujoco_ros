@@ -14,10 +14,10 @@ catkin_package(
         INCLUDE_DIRS include
         LIBRARIES exercise5controller)
 
-add_library(exercise5controller src/Exercise5Controller.cpp)
+add_library(exercise5controller src/ForceController.cpp)
 target_link_libraries(exercise5controller ${catkin_LIBRARIES})
 
-add_executable(run src/run.cpp src/Robot.cpp src/panda.cpp src/Exercise5Controller.cpp)
+add_executable(run src/run.cpp src/Robot.cpp src/panda.cpp src/ForceController.cpp)
 target_link_libraries(run ${catkin_LIBRARIES})
 add_dependencies(run ${catkin_EXPORTED_TARGETS})
 

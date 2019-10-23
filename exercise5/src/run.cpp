@@ -9,7 +9,7 @@
 #include <chrono>
 
 #include <exercise5/Robot.h>
-#include <exercise5/Exercise5Controller.h>
+#include <exercise5/ForceController.h>
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "run");  //initialise ros node with name "run"
@@ -70,9 +70,9 @@ int main(int argc, char **argv) {
     //     return -1;
     // }
 
-      r.loadController("exercise5_controller"); //load exercise5 controller
+      r.loadController("force_controller"); //load force controller
       r.switchControllers({"trajectory_controller"},
-                          {"exercise5_controller"}); //stop trajectory controller and load exercise5 controller
+                          {"force_controller"}); //stop trajectory controller and load force controller
 
     ros::Duration(100.0).sleep(); //log data for 10more seconds
 
