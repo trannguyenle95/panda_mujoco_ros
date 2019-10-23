@@ -2,20 +2,16 @@
  * Copyright (c) Aalto  - All Rights Reserved
  * Created on: 2/8/19
  *     Author: Vladimir Petrik <vladimir.petrik@aalto.fi>
+ * Adopted and modified on: 15/10/19
+ *     Author: Tran Nguyen Le <tran.nguyenle@aalto.fi>
  */
 
 #include <exercise5/ForceController.h>
 #include <pluginlib/class_list_macros.h>
 #include <ros/ros.h>
 #include <ros/package.h>
-#include <std_msgs/Float64MultiArray.h>
 #include <geometry_msgs/WrenchStamped.h>
 Eigen::Matrix<double,6,1> f_current;
-double tau_ = 1.0/(2*3.14*9.0);
-double filt_old_ = 0.0;
-double filt_ = 0.0;
-double delta_time = 0.002;
-double f_cur_buffer_ = 0.0;
 Eigen::VectorXd initial_pose_save(7);
 
 bool ForceController::init(hardware_interface::EffortJointInterface *hw, ros::NodeHandle &handle) {
@@ -39,7 +35,7 @@ bool ForceController::init(hardware_interface::EffortJointInterface *hw, ros::No
 
 void ForceController::starting(const ros::Time &time1) {
     err_force_int.setZero(); //reset integration term
-    f_current.setZero();
+    f_current.setZero();     //reset the force feedback
     for (int i = 0; i < 7; ++i){
         initial_pose_save(i) =  joints[i].getPosition();
     }
@@ -53,34 +49,22 @@ void ForceController::updateFTsensor(const geometry_msgs::WrenchStamped::ConstPt
   f_current(3) = f_meas.torque.x;
   f_current(4) = f_meas.torque.y;
   f_current(5) = f_meas.torque.z;
-
   f_current(2) = first_order_lowpass_filter();
-  // std::cout << "f current :\n"<< f_current.transpose()<< std::endl;
 }
-double ForceController::first_order_lowpass_filter()
-{
-    filt_ = (tau_ * filt_old_ + delta_time*f_cur_buffer_)/(tau_ + delta_time);
-    filt_old_ = filt_;
-    return filt_;
-}
+
 void ForceController::update(const ros::Time &time, const ros::Duration &period) {
   // initial_pose << 0, 0.688, 0, -1.6, 0, 2.25, 0.75;
   // initial_pose << 0, 0.11, 0, -2.4, 0, 2.54, 0.84;
   Eigen::VectorXd initial_pose(7);
   initial_pose = initial_pose_save;
-  std::cout << "initial_pose :\n"<< initial_pose.transpose()<< std::endl;
-
   //// get q of current time step
-   Eigen::VectorXd q_current(7),q_vel(7);
+   Eigen::VectorXd q_current(7);
    for (int i = 0; i < 7; ++i){
        q_current(i) =  joints[i].getPosition();
-       q_vel(i) = joints[i].getVelocity();
    }
    //// calculate jacobian
    Eigen::MatrixXd J = calculateJacobian(q_current);
-   Eigen::Matrix<double,6,1> twist = J*q_vel;
-   Eigen::VectorXd twist_pos(3);
-   twist_pos << twist(0), twist(1), twist(2);
+
       //// forward kinematics
    Eigen::Matrix4d T09; // transformation matrix of frame 7 relative to frame 0 (world frame)
    T09 = forwardKinematic(q_current, 0, 9);
@@ -102,7 +86,7 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
 
    //// defining and initializing PD controller variables
    // motion control
-   Eigen::Matrix<double, 3,3> kp_pos,kp_ori,kd_pos,kd_ori,K_damp;
+   Eigen::Matrix<double, 3,3> kp_pos,kp_ori,kd_pos,kd_ori;
    kp_pos.setIdentity();
    kd_pos.setIdentity();
    kp_ori.setIdentity();
@@ -114,29 +98,24 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
 
    kp_ori *= 1000;
 
-   // force controls
+   // PI forcefeedback gains
    Eigen::Matrix<double, 6,6> kp_force,ki_force;
    kp_force.setIdentity();
    ki_force.setIdentity();
    kp_force *= 0.005;
    ki_force *= 0.005;
 
-   // loop control
-   //// force controller to update next position
-   Eigen:: Matrix<double,6,1> f_desired; // error in ft
-   Eigen:: Matrix<double,6,1> err_force; // error in ft
-   f_desired << 0,0,-10,0,0,0;
+   //// set the desired forece and calculate the force error.
+   Eigen:: Matrix<double,6,1> f_desired;
+   Eigen:: Matrix<double,6,1> err_force;
+   f_desired << 0,0,-20,0,0,0; //force desired in z axis
    err_force = f_desired - f_current;
-   err_force_int += err_force*delta_time;
+   err_force_int += err_force*period.toSec(); //integral term of force error
 
+  //// calculate new pos in global frame
    Eigen::VectorXd force_ctrl(6);
    force_ctrl = kp_force*err_force + ki_force*err_force_int;
-   // force_ctrl = kp_force*err_force*pos_desired[2];
-
-   //// calculate new pos
-   // in global frame
    pos_desired[2] += force_ctrl[2];
-
    std::cout << "f_current: " << f_current[2] << std::endl;
    std::cout << "err_force: " << err_force[2] << std::endl;
 
@@ -151,18 +130,17 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
    std::cout << "err_pos: " << err_pos.transpose() << std::endl;
    std::cout << "err_ori: " << err_ori.transpose() << std::endl;
 
-   Eigen::VectorXd Fp(3); // position part of impedance controller in task space
-   Eigen::VectorXd Fr(3); // orientation part of impedance controller in task space
+   Eigen::VectorXd Fp(3); // position part of the controller in task space
+   Eigen::VectorXd Fr(3); // orientation part of the controller in task space
    Fp = kp_pos*err_pos ;
    Fr = kp_ori*err_ori ;
-
 
    //// tau = Jp^T * Fp + Jr^T * Fr + J^T * foce_controller_term + qfrc_bias
    Eigen::VectorXd F_ts_ctrl(6);
    F_ts_ctrl << Fp, Fr;
 
    Eigen::VectorXd tau(7);
-   tau =  J.transpose() *F_ts_ctrl;
+   tau =  J.transpose() *F_ts_ctrl; //gravity is added due to the code in RobotHWMujoco
    Eigen::VectorXd torque_limits(7);
    torque_limits << 87, 87, 87, 87, 12, 12, 12; // torque limits for joints
    for (int i = 0; i < 7; ++i){
@@ -174,7 +152,7 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
 
    }
    for (size_t i = 0; i < joints.size(); ++i) {
-      joints[i].setCommand(tau[i]);
+      joints[i].setCommand(tau[i]); //send torque command to control the robot
     }
    std::cout << " -------- \n";
 }
@@ -373,5 +351,11 @@ Eigen::MatrixXd ForceController::calculateJacobian(Eigen::VectorXd &q_in)
     Jtilde(5,6)=(t89-t114);
 
     return Jtilde;
+}
+double ForceController::first_order_lowpass_filter()
+{
+    filt_ = (tau_ * filt_old_ + delta_time*f_cur_buffer_)/(tau_ + delta_time);
+    filt_old_ = filt_;
+    return filt_;
 }
 PLUGINLIB_EXPORT_CLASS(ForceController, controller_interface::ControllerBase)

@@ -1,7 +1,9 @@
 /**
  * Copyright (c) Aalto  - All Rights Reserved
- * Created on: 8/2/18
+ * Created on: 2/8/19
  *     Author: Vladimir Petrik <vladimir.petrik@aalto.fi>
+ * Adopted and modified on: 15/10/19
+ *     Author: Tran Nguyen Le <tran.nguyenle@aalto.fi>
  */
 
 #include <ros/ros.h>
@@ -267,7 +269,6 @@ int main(int argc, char **argv) {
             for (int i = 0; i < 7; ++i){
               q(i) = d->sensordata[i];
             }
-            std::cout << "q ne " << q.transpose() << std::endl;
             Eigen::Matrix4d T0F = forwardKinematic(q, 0, 8); // get transformation matrix of sensor frame relative to base frame
             Eigen::Matrix3d r0F;
             r0F = T0F.block(0, 0, 3, 3); // get rotation matrix of sensor frame relative to base frame
