@@ -2,6 +2,8 @@
  * Copyright (c) Aalto  - All Rights Reserved
  * Created on: 2/8/19
  *     Author: Vladimir Petrik <vladimir.petrik@aalto.fi>
+ * Adopted and modified on: 15/10/19
+ *     Author: Tran Nguyen Le <nguyenle.tran@aalto.fi>
  */
 
 #include <panda_controllers/functions.h>
@@ -70,11 +72,14 @@ int main(int argc, char **argv) {
     //     ROS_ERROR_STREAM("Cannot execute trajectory");
     //     return -1;
     // }
-
+    std::string control_mode;
+    node.getParam("/panda_controllers/control_mode", control_mode);
+    if (control_mode.compare("force_controller") == 0){
       r.loadController("force_controller"); //load force controller
       r.switchControllers({"trajectory_controller"},
                           {"force_controller"}); //stop trajectory controller and load force controller
-
+    }
+    else {ROS_ERROR_STREAM("Wrong controller name. Please run the launch file again with (force_controller) or ()");}
     ros::Duration(100.0).sleep(); //log data for 10more seconds
 
     return 0;

@@ -8,7 +8,6 @@
  #include <ros/ros.h>
  #include <ros/package.h>
  #include <geometry_msgs/WrenchStamped.h>
- #include <std_msgs/Float64MultiArray.h>
  #include <urdf/model.h>
  // from kdl packages
  #include <kdl/tree.hpp>
@@ -19,7 +18,6 @@
  #include <kdl/chainjnttojacsolver.hpp>        // jacobian
  #include <kdl/chainfksolverpos_recursive.hpp> // forward kinematics
  // #include <kdl/chainfksolvervel_recursive.hpp> // forward kinematics
-
  #include <boost/scoped_ptr.hpp>
  #include <boost/lexical_cast.hpp>
  #include <math.h>
@@ -190,12 +188,9 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
       joints[i].setCommand(tau[i]); //send torque command to control the robot
     }
 }
-
-
 void ForceController::stopping(const ros::Time &time1) {
     ControllerBase::stopping(time1);
 }
-
 double ForceController::first_order_lowpass_filter()
 {
     filt_ = (tau_ * filt_old_ + delta_time*f_cur_buffer_)/(tau_ + delta_time);

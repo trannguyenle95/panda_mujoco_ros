@@ -1,27 +1,38 @@
-<!--
-Copyright (c) Aalto  - All Rights Reserved
-Created on: 2/8/19
-    Author: Vladimir Petrik <vladimir.petrik@aalto.fi>
-   Details:
--->
-
+<!-- /**
+ * Copyright (c) Aalto  - All Rights Reserved
+ * Created on: 2/8/19
+ *     Author: Vladimir Petrik <vladimir.petrik@aalto.fi>
+ * Adopted and modified on: 15/10/19
+ *     Author: Tran Nguyen Le <nguyenle.tran@aalto.fi>
+ */ -->
 <launch>
-
-    <group ns="lumi_mujoco">
-        <rosparam command="load" file="$(find panda_controllers)/config/controllers.yaml"/>
+    <!-- Load plotjuggler tool to plot data if plot:=true -->
+    <arg name="plot" default="false" />
+    <group if="$(arg plot)">
+      <node name="plotjuggler_with_layout" type="PlotJuggler" pkg="plotjuggler" output="screen"
+            args="--layout $(find panda_controllers)/config/ylimits.xml"
+      />
     </group>
-
+    <!-- Call the simluation launch file to establish connection with mujoco -->
     <include file="$(find lumi_mujoco)/launch/simulation.launch">
         <arg name="model" value="$(find panda_controllers)/model/robots/sim.urdf"/>
         <!-- <arg name="model" value="$(find exercise5)/model/robots/robot_table_env.urdf"/> -->
         <arg name="mujoco_model" value="$(find panda_controllers)/model/robots/robot_table_env_motor_actuator.xml"/>
-
         <arg name="compensate_bias" value="false"/>
-        <arg name="inverse_dynamics" value="false"/>
         <arg name="bias_error" value="0"/>
         <arg name="look_at_x" value="0.01"/>
         <arg name="look_at_y" value="0"/>
         <arg name="look_at_z" value="0"/>
     </include>
+    <group ns="lumi_mujoco">
+        <rosparam command="load" file="$(find panda_controllers)/config/controllers.yaml"/>
+    </group>
+    <!-- Input the controller name to load and start the corresponded controller -->
+    <arg name="control_mode" default="random" />
+    <arg name="node_start_delay" default="5.0" />
+    <node name="panda_controllers" type="run" pkg="panda_controllers" output="screen"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+      <param name="control_mode" value="$(arg control_mode)"/>
+    </node>
 
 </launch>
