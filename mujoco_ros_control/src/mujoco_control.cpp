@@ -127,6 +127,7 @@ Eigen::VectorXd read_ft_data(const mjModel *m, const mjData *d, Eigen::Matrix4d 
     // std::cout << "force data " << ft_data.transpose() << std::endl;
     return ft_data;
 }
+
 //========================================================================================================
 int main(int argc, char **argv) {
     ros::init(argc, argv, "mujoco_control");
@@ -234,6 +235,7 @@ int main(int argc, char **argv) {
     image_transport::Publisher pub_rgb = it.advertise("rgb", 1);
     image_transport::Publisher pub_depth = it.advertise("depth", 1);
     ros::Publisher pub_ftsensor = node.advertise<geometry_msgs::WrenchStamped>("/lumi_mujoco/array", 1);
+    ros::Publisher pub_massmatrix = node.advertise<std_msgs::Float64MultiArray>("/lumi_mujoco/MassMatrix", 1);
 
     const auto timer_rendered = node.createTimer(ros::Duration(0.1), [&](const ros::TimerEvent &e) {
 
@@ -274,8 +276,6 @@ int main(int argc, char **argv) {
             r0F = T0F.block(0, 0, 3, 3); // get rotation matrix of sensor frame relative to base frame
             Eigen::Matrix4d T7F = forwardKinematic(q, 7, 8); // get transformation matrix of sensor frame relative to frame 7
             Eigen::VectorXd ft_sensor = read_ft_data(m, d,T0F,T7F,r0F);
-        		//Clear array
-        		//for loop, pushing data in the size of the array
             array.wrench.force.x = ft_sensor[0];
             array.wrench.force.y = ft_sensor[1];
             array.wrench.force.z = ft_sensor[2];
@@ -284,32 +284,13 @@ int main(int argc, char **argv) {
             array.wrench.torque.z = ft_sensor[5];
             pub_ftsensor.publish(array);
         }
+        // if (pub_massmatrix.getNumSubscribers() != 0) {
+        //     header.frame_id = "massmatrix";
+        //     geometry_msgs::WrenchStamped mass_array;
+        //     Eigen::MatrixXd mass_matrix_vector = calculateMass(m, d);
+        //     pub_ftsensor.publish(mass_matrix_vector);
+        // }
     });
-    ////////////////////////////////////
-    // ros::Publisher pub_ftsensor = node.advertise<geometry_msgs::WrenchStamped>("/lumi_mujoco/array", 1);
-    // ros::Rate loop_rate(10);
-    // while (ros::ok())
-    // {
-    //   geometry_msgs::WrenchStamped array;
-    //       Eigen::VectorXd ft_sensor = read_ft_data(m, d);
-    //   		//Clear array
-    //   		//for loop, pushing data in the size of the array
-    //       array.wrench.force.x = ft_sensor[0];
-    //       array.wrench.force.y = ft_sensor[1];
-    //       array.wrench.force.z = ft_sensor[2];
-    //       array.wrench.torque.x = ft_sensor[3];
-    //       array.wrench.torque.y = ft_sensor[4];
-    //       array.wrench.torque.z = ft_sensor[5];
-    //   		//Publish array
-    //   		chatter_pub.publish(array);
-    //   		//Let the world know
-    //   		// ROS_INFO("I published something!");
-    //   		//Do this.
-    //   		ros::spinOnce();
-    //   		//Added a delay so not to spam
-    // }
-
-    ////////////////////////////////////
 
     ros::waitForShutdown();
     mj_deleteModel(m);

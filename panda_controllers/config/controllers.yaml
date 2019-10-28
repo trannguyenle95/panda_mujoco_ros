@@ -1,6 +1,6 @@
 
 force_controller:
-  type: exercise5/ForceController
+  type: panda_controllers/ForceController
 
   joints:
     - lumi_joint1

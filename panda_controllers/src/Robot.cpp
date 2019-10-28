@@ -4,7 +4,7 @@
  *     Author: Vladimir Petrik <vladimir.petrik@aalto.fi>
  */
 
-#include <exercise5/Robot.h>
+#include <panda_controllers/Robot.h>
 #include <std_srvs/Empty.h>
 #include <eigen_conversions/eigen_msg.h>
 #include <controller_manager_msgs/LoadController.h>
@@ -87,4 +87,3 @@ bool Robot::switchControllers(const std::vector<std::string> &stop, const std::v
     auto suc = ros::service::call("/lumi_mujoco/controller_manager/switch_controller", srv);
     return suc && srv.response.ok;
 }
-

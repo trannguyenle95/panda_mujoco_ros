@@ -1,6 +1,6 @@
-<library path="lib/libexercise5controller">
+<library path="lib/libpandacontrollers">
 
-    <class name="exercise5/ForceController" type="ForceController"
+    <class name="panda_controllers/ForceController" type="ForceController"
            base_class_type="controller_interface::ControllerBase">
         <description>
             The controller applying constant force in one axis.

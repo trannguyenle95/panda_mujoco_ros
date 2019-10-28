@@ -4,12 +4,13 @@
  *     Author: Vladimir Petrik <vladimir.petrik@aalto.fi>
  */
 
-#include <exercise5/functions.h>
+#include <panda_controllers/functions.h>
 #include <std_srvs/Empty.h>
 #include <chrono>
 
-#include <exercise5/Robot.h>
-#include <exercise5/ForceController.h>
+#include <panda_controllers/Robot.h>
+#include <panda_controllers/ForceController_KDL.h>
+// #include <exercise5/ForceController_noKDL.h>
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "run");  //initialise ros node with name "run"

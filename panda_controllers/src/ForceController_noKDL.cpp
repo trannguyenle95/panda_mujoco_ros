@@ -6,7 +6,7 @@
  *     Author: Tran Nguyen Le <tran.nguyenle@aalto.fi>
  */
 
-#include <exercise5/ForceController.h>
+#include <exercise5/ForceController_noKDL.h>
 #include <pluginlib/class_list_macros.h>
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -103,7 +103,7 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
    kp_force.setIdentity();
    ki_force.setIdentity();
    kp_force *= 0.005;
-   ki_force *= 0.005;
+   ki_force *= 0.004;
 
    //// set the desired forece and calculate the force error.
    Eigen:: Matrix<double,6,1> f_desired;

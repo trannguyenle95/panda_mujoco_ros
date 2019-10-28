@@ -35,37 +35,17 @@ void RobotHWMujoco::read(const mjData &d) {
         pos[i] = d.qpos[qadr[i]];
         vel[i] = d.qvel[vadr[i]];
         eff[i] = d.qfrc_applied[vadr[i]];
-        if (compensate_bias) {
-            eff[i] -= d.qfrc_bias[vadr[i]];
-        }
+        // if (compensate_bias) {
+        //     eff[i] -= d.qfrc_bias[vadr[i]];
+        // }
     }
 }
-void RobotHWMujoco::calculateMass(const mjModel *m, mjData *d) {
-    		mjMARKSTACK;
- 		mjtNum* dense_m = mj_stackAlloc(d, m->nv * m->nv);
-		mj_fullM(m, dense_m,d->qM);
-		// Eigen::MatrixXd dense_m_red(7, 7);
-		for(int r=0; r<7; r++){
-      			for(int c=0; c<7; c++){
-			    dense_m_red(r, c) = dense_m[r*m->nv + c];
-        }
-      }
-}
+
 void RobotHWMujoco::write(mjData &d) {
-    Eigen::MatrixXd cmd_eigen = Eigen::Map<Eigen::Matrix<double, 7, 1> >(cmd.data());
-    if (inverse_dynamics){
-    std::cout << "true " << std::endl;
-    tau_cmd = dense_m_red * cmd_eigen;
-    for (size_t j = 0; j < 7; j++) {
-      cmd[j] = tau_cmd(j,0);
-    }
-    }
-    else{
     for (size_t i = 0; i < vadr.size(); ++i) {
         d.qfrc_applied[vadr[i]] = cmd[i];
-        if (compensate_bias) {
-            d.qfrc_applied[vadr[i]] += d.qfrc_bias[vadr[i]] * bias_error;
-        }
+        // if (compensate_bias) {
+        //     d.qfrc_applied[vadr[i]] += d.qfrc_bias[vadr[i]] * bias_error;
+        // }
     }
-  }
 }
