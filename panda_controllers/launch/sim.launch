@@ -9,6 +9,7 @@
     <!-- Load plotjuggler tool to plot data if plot:=true -->
     <arg name="plot" default="false" />
     <group if="$(arg plot)">
+      <arg name="node_start_delay" value="10.0" />
       <node name="plotjuggler_with_layout" type="PlotJuggler" pkg="plotjuggler" output="screen"
             args="--layout $(find panda_controllers)/config/ylimits.xml"
       />
@@ -34,5 +35,4 @@
           launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
       <param name="control_mode" value="$(arg control_mode)"/>
     </node>
-
 </launch>

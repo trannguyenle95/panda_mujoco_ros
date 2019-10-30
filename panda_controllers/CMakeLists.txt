@@ -14,10 +14,11 @@ catkin_package(
         INCLUDE_DIRS include
         LIBRARIES pandacontrollers)
 
-add_library(pandacontrollers src/ForceController_KDL.cpp)
+add_library(pandacontrollers src/ForceController_KDL.cpp src/HybridController_KDL.cpp)
+
 target_link_libraries(pandacontrollers ${catkin_LIBRARIES})
 
-add_executable(run src/run.cpp src/Robot.cpp src/ForceController_KDL.cpp)
+add_executable(run src/run.cpp src/Robot.cpp src/ForceController_KDL.cpp src/HybridController_KDL.cpp)
 target_link_libraries(run ${catkin_LIBRARIES})
 add_dependencies(run ${catkin_EXPORTED_TARGETS})
 

@@ -6,5 +6,10 @@
             The controller applying constant force in one axis.
         </description>
     </class>
-
+    <class name="panda_controllers/HybridController" type="HybridController"
+           base_class_type="controller_interface::ControllerBase">
+        <description>
+            The controller applying constant force in one axis and motion in others.
+        </description>
+    </class>
 </library>
