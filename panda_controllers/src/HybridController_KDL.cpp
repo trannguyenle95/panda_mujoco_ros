@@ -144,26 +144,29 @@ void HybridController::update(const ros::Time &time, const ros::Duration &period
    kp_force *= 0.14;
    ki_force *= 0.14;
    S.setZero();
-   S(2,2) = 1;
+   S(2,2) = 1; //Selection matrix for force (only in z-axis)
    Id.setIdentity();
-   S_bar = Id - S;
+   S_bar = Id - S; //Selection matrix for position
    S_pos = S_bar.block(0,0,3,3);
    S_ori = S_bar.block(3,3,3,3);
 
    //// set the desired force and calculate the force error.
    Eigen:: Matrix<double,6,1> f_desired;
    Eigen:: Matrix<double,6,1> err_force;
-   f_desired << 0,0,-8,0,0,0; //force desired in z axis
+   f_desired << 0,0,-10,0,0,0; //force desired in z axis
    err_force = f_desired - f_current_;
    err_force_int += err_force*period.toSec(); //integral term of force error
    // if (abs(err_force[2]) < abs(f_desired[2]/2)){
-   if (f_current_[2] < -2){
-     kp_pos(0,0)= 30;
-     kp_pos(1,1)= 50;
-     // pos_desired[0] += 0.2;
-     pos_desired[0] -= 0.2;
+   if (f_current_[2] < -2){ //When contact happens
+     kp_pos(0,0)= 35; // 35 works
+     kp_pos(1,1)= 35;
+     // pos_desired[0] += 0.2; //pos_desired[1] += 0.2;
+     pos_desired[0] -= 0.3; //p os_desired[1] -= 0.2;
+
      std::cout << "MOVE NOW !" << std::endl;
      std::cout << "x new: " << pos_desired[0]  << std::endl;
+     std::cout << "y new: " << pos_desired[1]  << std::endl;
+
    }
   //// calculate new pos in global frame
    Eigen::VectorXd force_ctrl(6);
@@ -171,6 +174,7 @@ void HybridController::update(const ros::Time &time, const ros::Duration &period
    std::cout << "f_current_: " << f_current_[2] << " --- "<< "err_force: " << err_force[2] << std::endl;
    // std::cout << "x old: " << pos_desired[0]  << std::endl;
    std::cout << "x current: " << pos_current[0]  << std::endl;
+   std::cout << "y current: " << pos_current[1]  << std::endl;
 
    //// motion control
    Eigen::VectorXd err_pos(3); err_pos.setZero(); // error in position
@@ -183,7 +187,7 @@ void HybridController::update(const ros::Time &time, const ros::Duration &period
 
    Eigen::VectorXd Fp(3); // position part of the controller in task space
    Eigen::VectorXd Fr(3); // orientation part of the controller in task space
-   Fp = (S_pos*kp_pos)*err_pos ;
+   Fp = (S_pos*kp_pos)*err_pos;
    Fr = (S_ori*kp_ori)*err_ori;
    Eigen::VectorXd F_ts_ctrl(6), Ff(6);
    F_ts_ctrl << Fp, Fr;
@@ -191,6 +195,7 @@ void HybridController::update(const ros::Time &time, const ros::Duration &period
    Eigen::VectorXd tau(7);
    comp_d.data = G.data + C.data; //gravity and coriolis compensation
    tau =  J.data.transpose() *(F_ts_ctrl + Ff ) + comp_d.data; //tau to command the robot
+   // tau =  J.data.transpose() *Ff + M.data* J_inv * F_ts_ctrl + comp_d.data; //tau to command the robot
 
    Eigen::VectorXd torque_limits(7);
    torque_limits << 87, 87, 87, 87, 12, 12, 12; // torque limits for joints
