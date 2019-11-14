@@ -124,7 +124,6 @@ Eigen::VectorXd read_ft_data(const mjModel *m, const mjData *d, Eigen::Matrix4d 
     Eigen::VectorXd ft_data_calib(6); // offset of ft readings
     ft_data_calib << 0.00187174, -0.000114789, 11.1045, -0.0579166, -8.66481, -7.98075e-05;
     ft_data = ft_data - ft_data_calib;
-    // std::cout << "force data " << ft_data.transpose() << std::endl;
     return ft_data;
 }
 
@@ -234,7 +233,7 @@ int main(int argc, char **argv) {
     image_transport::ImageTransport it(node);
     image_transport::Publisher pub_rgb = it.advertise("rgb", 1);
     image_transport::Publisher pub_depth = it.advertise("depth", 1);
-    ros::Publisher pub_ftsensor = node.advertise<geometry_msgs::WrenchStamped>("/lumi_mujoco/array", 1);
+    ros::Publisher pub_ftsensor = node.advertise<geometry_msgs::WrenchStamped>("/lumi_mujoco/F_ext", 1);
     ros::Publisher pub_massmatrix = node.advertise<std_msgs::Float64MultiArray>("/lumi_mujoco/MassMatrix", 1);
 
     const auto timer_rendered = node.createTimer(ros::Duration(0.1), [&](const ros::TimerEvent &e) {

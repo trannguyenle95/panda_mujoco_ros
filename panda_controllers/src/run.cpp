@@ -9,10 +9,8 @@
 #include <panda_controllers/functions.h>
 #include <std_srvs/Empty.h>
 #include <chrono>
-
 #include <panda_controllers/Robot.h>
-#include <panda_controllers/ForceController_KDL.h>
-// #include <exercise5/ForceController_noKDL.h>
+
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "run");  //initialise ros node with name "run"
@@ -87,7 +85,7 @@ int main(int argc, char **argv) {
       r.switchControllers({"trajectory_controller"},
                           {"hybrid_controller"}); //stop trajectory controller and load force controller
     }
-    else {ROS_ERROR_STREAM("Wrong controller name. Please run the launch file again with (force_controller) or (hybrid_controller)");}
+    ROS_INFO_STREAM("Controller is activated: " << control_mode);
     ros::Duration(100.0).sleep(); //log data for 10more seconds
 
     return 0;

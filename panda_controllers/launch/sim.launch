@@ -26,7 +26,7 @@
         <arg name="look_at_z" value="0"/>
     </include>
     <group ns="lumi_mujoco">
-        <rosparam command="load" file="$(find panda_controllers)/config/controllers.yaml"/>
+        <rosparam command="load" file="$(find panda_controllers)/config/controllers_sim.yaml"/>
     </group>
     <!-- Input the controller name to load and start the corresponded controller -->
     <arg name="control_mode" default="random" />

@@ -14,16 +14,14 @@ catkin_package(
         INCLUDE_DIRS include
         LIBRARIES pandacontrollers)
 
-add_library(pandacontrollers src/ForceController_KDL.cpp src/HybridController_KDL.cpp)
+add_library(pandacontrollers src/ForceController_Sim.cpp src/HybridController_Sim.cpp src/GravityCompensation_Real.cpp)
 
 target_link_libraries(pandacontrollers ${catkin_LIBRARIES})
 
-add_executable(run src/run.cpp src/Robot.cpp src/ForceController_KDL.cpp src/HybridController_KDL.cpp)
+add_executable(run src/run.cpp src/Robot.cpp src/ForceController_Sim.cpp src/HybridController_Sim.cpp)
 target_link_libraries(run ${catkin_LIBRARIES})
 add_dependencies(run ${catkin_EXPORTED_TARGETS})
 
-add_executable(parser src/parser.cpp)
-target_link_libraries(parser ${catkin_LIBRARIES})
 
 file(GLOB xacro_files model/robots/*.urdf.xacro)
 xacro_add_files(${xacro_files} TARGET media_files INORDER)

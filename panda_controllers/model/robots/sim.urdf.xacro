@@ -2,8 +2,8 @@
 <robot name="lumi" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
     <xacro:include filename="$(find franka_description)/robots/panda_arm.xacro"/>
-    <xacro:include filename="$(find exercise5)/model/robots/hand.xacro"/>
-    <!--<xacro:include filename="$(find franka_description)/robots/hand.xacro"/>-->
+    <xacro:include filename="$(find panda_controllers)/model/robots/hand.xacro"/>
+    <!-- <xacro:include filename="$(find franka_description)/robots/hand.xacro"/> -->
 
     <mujoco>
         <compiler meshdir="../meshes/" balanceinertia="true" discardvisual="true"/>
@@ -50,29 +50,5 @@
     </joint>
 
 
-    <link name="box">
-        <visual>
-            <geometry>
-                <box size="0.05 0.05 0.2"/>
-            </geometry>
-            <material name="Gray">
-                <color rgba="0.6 0.6 0.6 1.0"/>
-            </material>
-        </visual>
-
-        <collision>
-            <geometry>
-                <box size="0.05 0.05 0.2"/>
-            </geometry>
-            <material name="Gray">
-                <color rgba="0.6 0.6 0.6 1.0"/>
-            </material>
-        </collision>
-    </link>
-    <joint name="box_joint" type="fixed">
-        <origin xyz="0 0 0.22" rpy="0 0 0"/>
-        <parent link="lumi_link8"/>
-        <child link="box"/>
-    </joint>
 
 </robot>

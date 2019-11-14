@@ -35,17 +35,17 @@ void RobotHWMujoco::read(const mjData &d) {
         pos[i] = d.qpos[qadr[i]];
         vel[i] = d.qvel[vadr[i]];
         eff[i] = d.qfrc_applied[vadr[i]];
-        // if (compensate_bias) {
-        //     eff[i] -= d.qfrc_bias[vadr[i]];
-        // }
+        if (compensate_bias) {
+            eff[i] -= d.qfrc_bias[vadr[i]];
+        }
     }
 }
 
 void RobotHWMujoco::write(mjData &d) {
     for (size_t i = 0; i < vadr.size(); ++i) {
         d.qfrc_applied[vadr[i]] = cmd[i];
-        // if (compensate_bias) {
-        //     d.qfrc_applied[vadr[i]] += d.qfrc_bias[vadr[i]] * bias_error;
-        // }
+        if (compensate_bias) {
+            d.qfrc_applied[vadr[i]] += d.qfrc_bias[vadr[i]] * bias_error;
+        }
     }
 }

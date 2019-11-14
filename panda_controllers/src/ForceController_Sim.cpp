@@ -3,7 +3,7 @@
  * Created on: 25/10/19
  *     Author: Tran Nguyen Le <tran.nguyenle@aalto.fi>
  */
- #include <panda_controllers/ForceController_KDL.h>
+ #include <panda_controllers/ForceController_Sim.h>
  #include <pluginlib/class_list_macros.h>
  #include <ros/ros.h>
  #include <ros/package.h>
@@ -30,9 +30,20 @@ KDL::JntArray initial_pose_save(7);
 
 bool ForceController::init(hardware_interface::EffortJointInterface *hw, ros::NodeHandle &handle) {
     const auto names = hw->getNames();
-    sub_forcetorque_sensor_ = handle.subscribe<geometry_msgs::WrenchStamped>("/lumi_mujoco/array", 1, &ForceController::updateFTsensor, this,ros::TransportHints().reliable().tcpNoDelay());
+    // subscribers for simulation and real robot cases.
+    sub_forcetorque_sensor_sim = handle.subscribe<geometry_msgs::WrenchStamped>("/lumi_mujoco/F_ext", 1, &ForceController::updateFTsensor, this,ros::TransportHints().reliable().tcpNoDelay());
+    sub_forcetorque_sensor_real = handle.subscribe<geometry_msgs::WrenchStamped>("/franka_state_controller/F_ext", 1, &ForceController::updateFTsensor, this,ros::TransportHints().reliable().tcpNoDelay());
+
+    //Pass the sim parameter. If sim = 1, we are using simulation. If sim = 0, we are using the real robot
+    if (!handle.getParam("/lumi_mujoco/force_controller/sim", sim)){
+        ROS_ERROR("Could not find sim parameter");
+        return false;
+    }
+    std::string default_name = "";
+    auto jname = default_name;
     for (size_t i = 0; i < joints.size(); ++i) {
-        const auto jname = std::string("lumi_joint") + std::to_string(i + 1);
+        if (sim == 1){jname = std::string("lumi_joint") + std::to_string(i + 1);}
+        if (sim == 0){jname = std::string("panda_joint") + std::to_string(i + 1);}
         if (std::find(names.begin(), names.end(), jname) == names.end()) {
             ROS_ERROR_STREAM("Joint not found: " << jname);
             ROS_ERROR_STREAM("Available joints: ");
@@ -43,8 +54,10 @@ bool ForceController::init(hardware_interface::EffortJointInterface *hw, ros::No
         }
         joints[i] = hw->getHandle(jname);
     }
-    // Parse urdf file to kdl_tree
-    std::string urdf_file = "/home/trannguyenle/catkin_ws/src/panda_controllers/model/robots/sim.urdf";
+    // ** Parse urdf file to kdl_tree **
+    std::string urdf_file;
+    if (sim == 1){urdf_file = "/home/trannguyenle/catkin_ws/src/panda_controllers/model/robots/sim.urdf";}
+    if (sim == 0){urdf_file = "/home/tran/catkin_ws/src/panda_controllers/model/robots/sim.urdf";}
     urdf::Model model;
     if (!model.initFile(urdf_file)){
       ROS_ERROR("Failed to parse urdf file");
@@ -56,9 +69,12 @@ bool ForceController::init(hardware_interface::EffortJointInterface *hw, ros::No
        return false;
     }
     ROS_INFO("Successfully construct kdl tree");
-    // Construct kdl_chain from kdl_tree
+    // ====================================
+    // ** Construct kdl_chain from kdl_tree **
     kdl_tree.getChain("base_link", "lumi_ee", kdl_chain);
     std::cout << "Number of joints in kdl chain: " << kdl_chain.getNrOfJoints() << std::endl;
+    // ====================================
+
     fk_pos_solver.reset(new KDL::ChainFkSolverPos_recursive(kdl_chain)); //forward kinematics solver init
     jnt_to_jac_solver.reset(new KDL::ChainJntToJacSolver(kdl_chain)); //jacobian solver init
     gravity = KDL::Vector::Zero(); // Get the gravity vector (direction and magnitude)
@@ -81,6 +97,7 @@ void ForceController::starting(const ros::Time &time1) {
     }
     ControllerBase::starting(time1);
 }
+// ** This function is used to obtain F/T sensor data.
 void ForceController::updateFTsensor(const geometry_msgs::WrenchStamped::ConstPtr &msg){
   geometry_msgs::Wrench f_meas = msg->wrench;
 	f_current(0) = f_meas.force.x;
@@ -126,20 +143,31 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
    //// defining and initializing PD controller variables
    // motion control
    Eigen::Matrix<double, 3,3> kp_pos,kp_ori;
+   Eigen::Matrix<double, 6,6> kp_force,ki_force;
    kp_pos.setIdentity();
    kp_ori.setIdentity();
-   kp_pos(0,0)= 2000;
-   kp_pos(1,1)= 2000;
-   kp_pos(2,2)= 300; //works
-   kp_ori *= 1000;
-
-   // PI forcefeedback gains
-   Eigen::Matrix<double, 6,6> kp_force,ki_force;
    kp_force.setIdentity();
    ki_force.setIdentity();
-   kp_force *= 0.005;
-   ki_force *= 0.004;
+   if (sim == 1){
+     kp_pos(0,0)= 2000;
+     kp_pos(1,1)= 2000;
+     kp_pos(2,2)= 300; //works
+     kp_ori *= 1000;
 
+     // PI forcefeedback gains
+     kp_force *= 0.005;
+     ki_force *= 0.004;
+   }
+   if (sim == 0){
+     kp_pos(0,0)= 0; // 10 each
+     kp_pos(1,1)= 0;
+     kp_pos(2,2)= 25; //25
+     kp_ori *= 0;
+     // kp_force *= 0.005;
+     // ki_force *= 0.004;
+     kp_force *= 0.005;
+     ki_force *= 0.008;
+   }
    //// set the desired force and calculate the force error.
    Eigen:: Matrix<double,6,1> f_desired;
    Eigen:: Matrix<double,6,1> err_force;
@@ -151,7 +179,6 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
    Eigen::VectorXd force_ctrl(6);
    force_ctrl = kp_force*err_force + ki_force*err_force_int;
    pos_desired[2] += force_ctrl[2];
-   std::cout << "f_current: " << f_current[2] << " --- "<< "err_force: " << err_force[2] << std::endl;
 
    //// motion control
    Eigen::VectorXd err_pos(3); err_pos.setZero(); // error in position
@@ -173,7 +200,13 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
 
    Eigen::VectorXd tau(7);
    comp_d.data = G.data + C.data; //gravity and coriolis compensation
-   tau =  J.data.transpose() *F_ts_ctrl + comp_d.data; //tau to command the robot
+   if (sim == 1){
+     tau =  J.data.transpose() *F_ts_ctrl + comp_d.data; //tau to command the robot
+     std::cout << "f_current: " << f_current[2] << " --- "<< "err_force: " << err_force[2] << std::endl;
+   }
+   if (sim == 0){
+     tau =  J.data.transpose() *F_ts_ctrl; //tau to command the robot
+   }
    Eigen::VectorXd torque_limits(7);
    torque_limits << 87, 87, 87, 87, 12, 12, 12; // torque limits for joints
    for (int i = 0; i < 7; ++i){

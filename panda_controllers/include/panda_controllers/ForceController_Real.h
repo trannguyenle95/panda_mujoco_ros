@@ -49,6 +49,9 @@ private:
     /** @brief Array of joint handlers */
     std::array<hardware_interface::JointHandle, NUM_OF_JOINTS> joints;
     Eigen:: Matrix<double,6,1> err_force_int; // error in ft
+    Eigen::Matrix<double, 6,6> kp_force,ki_force;
+    Eigen::Matrix<double, 3,3> kp_pos,kp_ori;
+
     // Variable for low pass filter
     double tau_ = 1.0/(2*3.14*9.0);
     double filt_old_ = 0.0;

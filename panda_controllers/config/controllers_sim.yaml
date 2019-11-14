@@ -1,7 +1,7 @@
 
 force_controller:
   type: panda_controllers/ForceController
-
+  sim: 1
   joints:
     - lumi_joint1
     - lumi_joint2
@@ -13,7 +13,7 @@ force_controller:
 
 hybrid_controller:
   type: panda_controllers/HybridController
-
+  sim: 1
   joints:
     - lumi_joint1
     - lumi_joint2

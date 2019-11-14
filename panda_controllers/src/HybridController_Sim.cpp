@@ -3,7 +3,7 @@
  * Created on: 25/10/19
  *     Author: Tran Nguyen Le <tran.nguyenle@aalto.fi>
  */
- #include <panda_controllers/HybridController_KDL.h>
+ #include <panda_controllers/HybridController_Sim.h>
  #include <pluginlib/class_list_macros.h>
  #include <ros/ros.h>
  #include <ros/package.h>
@@ -31,7 +31,7 @@ KDL::Vector pos_desired_save;
 
 bool HybridController::init(hardware_interface::EffortJointInterface *hw, ros::NodeHandle &handle) {
     const auto names = hw->getNames();
-    sub_forcetorque_sensor_ = handle.subscribe<geometry_msgs::WrenchStamped>("/lumi_mujoco/array", 1, &HybridController::updateFTsensor, this,ros::TransportHints().reliable().tcpNoDelay());
+    sub_forcetorque_sensor_ = handle.subscribe<geometry_msgs::WrenchStamped>("/lumi_mujoco/F_ext", 1, &HybridController::updateFTsensor, this,ros::TransportHints().reliable().tcpNoDelay());
     for (size_t i = 0; i < joints.size(); ++i) {
         const auto jname = std::string("lumi_joint") + std::to_string(i + 1);
         if (std::find(names.begin(), names.end(), jname) == names.end()) {
