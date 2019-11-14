@@ -1,8 +1,6 @@
 /**
  * Copyright (c) Aalto  - All Rights Reserved
- * Created on: 2/8/19
- *     Author: Vladimir Petrik <vladimir.petrik@aalto.fi>
- * Adopted and modified on: 15/10/19
+ * Created on: 15/10/19
  *     Author: Tran Nguyen Le <tran.nguyenle@aalto.fi>
  */
 

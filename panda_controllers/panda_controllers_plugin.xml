@@ -12,4 +12,11 @@
             The controller applying constant force in one axis and motion in others.
         </description>
     </class>
+    <class name="panda_controllers/GravityCompensation" type="GravityCompensation"
+       base_class_type="controller_interface::ControllerBase">
+    <description>
+        The controller sends zero torque to all joints of the robot. The
+        gravity will be compensated by the robot.
+    </description>
+</class>
 </library>

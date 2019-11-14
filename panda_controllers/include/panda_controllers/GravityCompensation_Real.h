@@ -1,13 +1,11 @@
 /**
  * Copyright (c) Aalto  - All Rights Reserved
- * Created on: 2/8/19
- *     Author: Vladimir Petrik <vladimir.petrik@aalto.fi>
- * Adopted and modified on: 15/10/19
+ * Created on: 15/10/19
  *     Author: Tran Nguyen Le <tran.nguyenle@aalto.fi>
  */
 
-#ifndef EXERCISE5_EXERCISE5CONTROLLER_H
-#define EXERCISE5_EXERCISE5CONTROLLER_H
+#ifndef PANDA_PANDACONTROLLERS_H
+#define PANDA_PANDACONTROLLERS_H
 
 #include <controller_interface/controller.h>
 #include <hardware_interface/joint_command_interface.h>
@@ -33,4 +31,4 @@ private:
     std::array<hardware_interface::JointHandle, NUM_OF_JOINTS> joints;
 };
 
-#endif //EXERCISE5_EXERCISE5CONTROLLER_H
+#endif //PANDA_PANDACONTROLLERS_H

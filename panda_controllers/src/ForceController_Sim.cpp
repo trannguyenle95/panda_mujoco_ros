@@ -110,7 +110,7 @@ void ForceController::updateFTsensor(const geometry_msgs::WrenchStamped::ConstPt
 }
 
 void ForceController::update(const ros::Time &time, const ros::Duration &period) {
-  //// get q of current time step
+  //// get join position and velocity of current time step
    KDL::JntArray q_kdl(7), q_vel(7);
    for (int i = 0; i < 7; ++i){
        q_kdl(i) =  joints[i].getPosition();
@@ -153,7 +153,6 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
      kp_pos(1,1)= 2000;
      kp_pos(2,2)= 300; //works
      kp_ori *= 1000;
-
      // PI forcefeedback gains
      kp_force *= 0.005;
      ki_force *= 0.004;
@@ -163,8 +162,6 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
      kp_pos(1,1)= 0;
      kp_pos(2,2)= 25; //25
      kp_ori *= 0;
-     // kp_force *= 0.005;
-     // ki_force *= 0.004;
      kp_force *= 0.005;
      ki_force *= 0.008;
    }
@@ -193,8 +190,6 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
    Eigen::VectorXd Fr(3); // orientation part of the controller in task space
    Fp = kp_pos*err_pos ;
    Fr = kp_ori*err_ori ;
-
-   //// tau = Jp^T * Fp + Jr^T * Fr + J^T * foce_controller_term + qfrc_bias
    Eigen::VectorXd F_ts_ctrl(6);
    F_ts_ctrl << Fp, Fr;
 
@@ -205,7 +200,7 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
      std::cout << "f_current: " << f_current[2] << " --- "<< "err_force: " << err_force[2] << std::endl;
    }
    if (sim == 0){
-     tau =  J.data.transpose() *F_ts_ctrl; //tau to command the robot
+     tau =  J.data.transpose() *F_ts_ctrl; //in real robot, the gravity is compensated by the robot
    }
    Eigen::VectorXd torque_limits(7);
    torque_limits << 87, 87, 87, 87, 12, 12, 12; // torque limits for joints
@@ -224,6 +219,7 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
 void ForceController::stopping(const ros::Time &time1) {
     ControllerBase::stopping(time1);
 }
+// Simple first order low pass filter for the F/T sensor readings.
 double ForceController::first_order_lowpass_filter()
 {
     filt_ = (tau_ * filt_old_ + delta_time*f_cur_buffer_)/(tau_ + delta_time);

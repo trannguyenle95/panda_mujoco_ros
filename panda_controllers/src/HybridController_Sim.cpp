@@ -1,4 +1,4 @@
-/**
+  /**
  * Copyright (c) Aalto  - All Rights Reserved
  * Created on: 25/10/19
  *     Author: Tran Nguyen Le <tran.nguyenle@aalto.fi>
@@ -195,7 +195,6 @@ void HybridController::update(const ros::Time &time, const ros::Duration &period
    Eigen::VectorXd tau(7);
    comp_d.data = G.data + C.data; //gravity and coriolis compensation
    tau =  J.data.transpose() *(F_ts_ctrl + Ff ) + comp_d.data; //tau to command the robot
-   // tau =  J.data.transpose() *Ff + M.data* J_inv * F_ts_ctrl + comp_d.data; //tau to command the robot
 
    Eigen::VectorXd torque_limits(7);
    torque_limits << 87, 87, 87, 87, 12, 12, 12; // torque limits for joints
