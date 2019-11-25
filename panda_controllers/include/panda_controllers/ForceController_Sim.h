@@ -45,7 +45,7 @@ private:
     constexpr static size_t NUM_OF_JOINTS = 7;
     ros::Subscriber sub_forcetorque_sensor_sim;
     ros::Subscriber sub_forcetorque_sensor_real;
-
+    ros::Publisher force_pub;
     double sim;
     /** @brief Array of joint handlers */
     std::array<hardware_interface::JointHandle, NUM_OF_JOINTS> joints;

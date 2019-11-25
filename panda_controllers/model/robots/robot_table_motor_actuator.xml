@@ -1,6 +1,14 @@
 <mujoco model="lumi">
     <compiler angle="radian" meshdir="../meshes/" />
-    <size njmax="500" nconmax="100" />
+    <!-- <size njmax="500" nconmax="100" /> -->
+    <size njmax="5000" nconmax="5000" />
+
+    <default class="puck-table">
+        <pair condim="6" solref="0.000001 200" solimp="0.9 0.99 0.0000001" friction="0.75 0.75 0.01 0.1 0.1"/>
+        <!-- <pair condim="6" solref="0.02 1" solimp="0.9 0.99 0.0000001" friction="0.75 0.75 0.01 0.1 0.1"/> -->
+
+    </default>
+
 
     <asset>
         <mesh name="table" file="table.stl" />
@@ -14,13 +22,25 @@
         <mesh name="link7" file="link7.stl" />
         <mesh name="hand" file="hand.stl" />
         <mesh name="finger" file="finger.stl" />
+        <mesh name="hockeyPuck" file="hockeyPuck.stl" scale="4.5 4.5 4.5"/>
+        <material name="yellowPlastic" rgba="0.9 0.89 0.36 1"/>
+        <material name="tablePlane" reflectance="0" texrepeat="0 0" texture="texplane" texuniform="true"/>
+
     </asset>
 
     <worldbody>
-        <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="table" />
-        <geom name="table" type="mesh" mesh="table" />
+        <!-- <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="table" /> -->
+        <!-- <geom name="table" type="mesh" mesh="table"/> -->
+        <geom friction="0.5 0.005 0.0001 " material="tablePlane" name="table" pos="0 0 0" size=".8 .6 .125" solref="0.1 0.000001" type="plane" />
         <geom pos="0 0 0" type="mesh" contype="0" conaffinity="0" group="1" mesh="link0" />
         <geom pos="-0 0 0" type="mesh" mesh="link0" />
+        <body name="hockeyPuck" pos="0.5 0 0">
+            <!-- <inertial diaginertia="0.0000413083 0.0000413083 0.0000722" mass="0.1" pos="0 0 0" /> -->
+            <geom condim="6" friction="0.95 0.005 0.0001 " material="yellowPlastic" mesh="hockeyPuck" name="hockeyPuck" solref="0.015 1.2" type="mesh" />
+            <inertial diaginertia="0.00836493075 0.00836493075 0.0146205" mass="1" pos="0 0 0" />
+            <joint limited="false" name="puckjoint" type="free" />
+        </body>
+
         <body name="lumi_link1" pos="0 0 0.333">
             <inertial pos="1.1399e-05 -0.0312655 -0.0693733" quat="0.98466 0.174481 -0.000101815 0.000347662" mass="2.77281" diaginertia="0.0164224 0.0153969 0.00546286" />
             <joint name="lumi_joint1" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973" damping="15"/>
@@ -80,6 +100,9 @@
         </body>
     </worldbody>
 
+    <contact>
+        <pair class="puck-table" geom1="table" geom2="hockeyPuck" />
+    </contact>
 
     <actuator>
         <motor joint='lumi_joint1' name='lumi_joint1_motor' gear="1" ctrllimited="true" ctrlrange="-87 87"/>

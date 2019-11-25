@@ -329,4 +329,41 @@
     <child link="lumi_ee"/>
   </joint>
 
+
+  <body name="hockeyPuck" pos="0.5 0 0.1">
+      <geom condim="6" friction="0.395 0.005 0.0001 " material="yellowPlastic" mesh="hockeyPuck" name="hockeyPuck" solref="0.015 0.1" type="mesh" />
+      <inertial diaginertia="0.0000413083 0.0000413083 0.0000722" mass="0.1" pos="0 0 0" />
+      <joint limited="false" name="puckjoint" type="free" />
+  </body>
+
+  <link name="hockeyPuck">
+  <inertial>
+    <mass value="0.1"/>
+    <inertia ixx="0.0000722" ixy="0" ixz="0" iyy="0.0000413083" iyz="0" izz="0.0000413083"/>
+  </inertial>
+  <visual>
+    <geometry>
+      <mesh filename="package://panda_controllers/model/meshes/hockeyPuck.stl" scale="4.5 4.5 4.5"/>
+    </geometry>
+    <material name="yellowPlastic">
+      <color rgba="0.9 0.89 0.36 1"/>
+    </material>
+  </visual>
+  <collision>
+    <geometry>
+      <mesh filename="package://panda_controllers/model/meshes/hockeyPuck.stl" scale="4.5 4.5 4.5"/>
+    </geometry>
+    <material name="yellowPlastic">
+      <color rgba="0.9 0.89 0.36 1"/>
+    </material>
+  </collision>
+</link>
+<joint name="puckjoint" type="floating">
+  <origin rpy="0 0 0" xyz="0.5 0 0"/>
+  <parent link="base_link"/>
+  <child link="hockeyPuck"/>
+  <dynamics damping="0.0" friction="0.5"/>
+</joint>
+
+
 </robot>

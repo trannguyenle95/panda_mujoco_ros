@@ -8,6 +8,8 @@
  #include <ros/ros.h>
  #include <ros/package.h>
  #include <geometry_msgs/WrenchStamped.h>
+ #include <std_msgs/Float64.h>
+
  #include <urdf/model.h>
  // from kdl packages
  #include <kdl/tree.hpp>
@@ -33,6 +35,7 @@ bool ForceController::init(hardware_interface::EffortJointInterface *hw, ros::No
     // subscribers for simulation and real robot cases.
     sub_forcetorque_sensor_sim = handle.subscribe<geometry_msgs::WrenchStamped>("/lumi_mujoco/F_ext", 1, &ForceController::updateFTsensor, this,ros::TransportHints().reliable().tcpNoDelay());
     sub_forcetorque_sensor_real = handle.subscribe<geometry_msgs::WrenchStamped>("/franka_state_controller/F_ext", 1, &ForceController::updateFTsensor, this,ros::TransportHints().reliable().tcpNoDelay());
+    force_pub = handle.advertise<std_msgs::Float64>("force_data", 1000);
 
     //Pass the sim parameter. If sim = 1, we are using simulation. If sim = 0, we are using the real robot
     if (!handle.getParam("/lumi_mujoco/force_controller/sim", sim)){
@@ -100,13 +103,13 @@ void ForceController::starting(const ros::Time &time1) {
 // ** This function is used to obtain F/T sensor data.
 void ForceController::updateFTsensor(const geometry_msgs::WrenchStamped::ConstPtr &msg){
   geometry_msgs::Wrench f_meas = msg->wrench;
-	f_current(0) = f_meas.force.x;
+	f_cur_buffer_ = f_meas.force.x;
   f_current(1) = f_meas.force.y;
-  f_cur_buffer_ = f_meas.force.z;
+  f_current(2) = f_meas.force.z;
   f_current(3) = f_meas.torque.x;
   f_current(4) = f_meas.torque.y;
   f_current(5) = f_meas.torque.z;
-  f_current(2) = first_order_lowpass_filter();
+  f_current(0) = first_order_lowpass_filter();
 }
 
 void ForceController::update(const ros::Time &time, const ros::Duration &period) {
@@ -149,13 +152,13 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
    kp_force.setIdentity();
    ki_force.setIdentity();
    if (sim == 1){
-     kp_pos(0,0)= 2000;
+     kp_pos(0,0)= 300;
      kp_pos(1,1)= 2000;
-     kp_pos(2,2)= 300; //works
+     kp_pos(2,2)= 2000; //works
      kp_ori *= 1000;
      // PI forcefeedback gains
      kp_force *= 0.005;
-     ki_force *= 0.004;
+     ki_force *= 0.009;
    }
    if (sim == 0){
      kp_pos(0,0)= 0; // 10 each
@@ -168,14 +171,14 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
    //// set the desired force and calculate the force error.
    Eigen:: Matrix<double,6,1> f_desired;
    Eigen:: Matrix<double,6,1> err_force;
-   f_desired << 0,0,-20,0,0,0; //force desired in z axis
+   f_desired << 12,0,0,0,0,0; //force desired in z axis
    err_force = f_desired - f_current;
    err_force_int += err_force*period.toSec(); //integral term of force error
 
   //// calculate new pos in global frame
    Eigen::VectorXd force_ctrl(6);
    force_ctrl = kp_force*err_force + ki_force*err_force_int;
-   pos_desired[2] += force_ctrl[2];
+   pos_desired[0] += force_ctrl[0];
 
    //// motion control
    Eigen::VectorXd err_pos(3); err_pos.setZero(); // error in position
@@ -197,7 +200,7 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
    comp_d.data = G.data + C.data; //gravity and coriolis compensation
    if (sim == 1){
      tau =  J.data.transpose() *F_ts_ctrl + comp_d.data; //tau to command the robot
-     std::cout << "f_current: " << f_current[2] << " --- "<< "err_force: " << err_force[2] << std::endl;
+     std::cout << "f_current: " << f_current[0] << " --- "<< "err_force: " << err_force[0] << std::endl;
    }
    if (sim == 0){
      tau =  J.data.transpose() *F_ts_ctrl; //in real robot, the gravity is compensated by the robot
@@ -215,6 +218,10 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
    for (size_t i = 0; i < joints.size(); ++i) {
       joints[i].setCommand(tau[i]); //send torque command to control the robot
     }
+    std_msgs::Float64 msg;
+    msg.data = f_current(0);
+    ROS_INFO_STREAM("PUBLISHING FORCE DATA");
+    force_pub.publish(msg);
 }
 void ForceController::stopping(const ros::Time &time1) {
     ControllerBase::stopping(time1);

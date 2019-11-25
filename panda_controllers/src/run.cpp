@@ -24,9 +24,9 @@ int main(int argc, char **argv) {
 
     const auto start_state = r.getCurrentState();
     // const auto goal_state = r.getStateFromJointValues({ 0, 0.11, 0, -2.4, 0, 2.54, 0.84});
-    // const auto goal_state = r.getStateFromJointValues({0.0, 0.22, 0.0, -2.87, -0.05, 3.08,0.75}); //+0.2
+    const auto goal_state = r.getStateFromJointValues({0.0, -0.02, 0.0, -3.07, -0.0, 3.05,0.75}); //+0.2
     // const auto goal_state = r.getStateFromJointValues({0, 0.58, 0, -1.99, 0, 2.6, 0.0}); // -0.2
-    const auto goal_state = r.getStateFromJointValues({0, 0.87, 0, -1.56, 0, 2.42, 0.75}); // -0.4
+    // const auto goal_state = r.getStateFromJointValues({0, 0.87, 0, -1.56, 0, 2.42, 0.75}); // -0.4
 
 
     //Create callback for joint_state message; Save end effector position and force into the file f
@@ -67,6 +67,15 @@ int main(int argc, char **argv) {
     std::string control_mode;
     node.getParam("/panda_controllers/control_mode", control_mode);
     if (control_mode.compare("force_controller") == 0){
+      const auto plan = r.planBetweenStates(start_state, goal_state);
+      if (plan.joint_trajectory.points.empty()) { // cannot plan
+          return -1;
+      }
+      r.visualiseTrajectory(plan);
+      if (!r.executeTrajectory(plan)) {
+          ROS_ERROR_STREAM("Cannot execute trajectory");
+          return -1;
+      }
       r.loadController("force_controller"); //load force controller
       r.switchControllers({"trajectory_controller"},
                           {"force_controller"}); //stop trajectory controller and load force controller
