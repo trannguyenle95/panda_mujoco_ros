@@ -11,7 +11,7 @@
     <group if="$(arg plot)">
       <arg name="node_start_delay" value="10.0" />
       <node name="plotjuggler_with_layout" type="PlotJuggler" pkg="plotjuggler" output="screen"
-            args="--layout $(find panda_controllers)/config/ylimits.xml"
+            args="--layout $(find panda_controllers)/config/pushing.xml"
       />
     </group>
     <!-- Call the simluation launch file to establish connection with mujoco -->
@@ -21,9 +21,9 @@
         <arg name="mujoco_model" value="$(find panda_controllers)/model/robots/robot_table_env_motor_actuator.xml"/>
         <arg name="compensate_bias" value="false"/>
         <arg name="bias_error" value="0"/>
-        <arg name="look_at_x" value="0.01"/>
-        <arg name="look_at_y" value="0"/>
-        <arg name="look_at_z" value="0"/>
+        <arg name="look_at_x" value="0.05"/>
+        <arg name="look_at_y" value="-0.5"/>
+        <arg name="look_at_z" value="0.9"/>
     </include>
     <group ns="lumi_mujoco">
         <rosparam command="load" file="$(find panda_controllers)/config/controllers_sim.yaml"/>

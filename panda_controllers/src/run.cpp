@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
 
     const auto start_state = r.getCurrentState();
     // const auto goal_state = r.getStateFromJointValues({ 0, 0.11, 0, -2.4, 0, 2.54, 0.84});
-    const auto goal_state = r.getStateFromJointValues({0.0, -0.02, 0.0, -3.07, -0.0, 3.05,0.75}); //+0.2
+    const auto goal_state = r.getStateFromJointValues({0.0, -0.02, 0.0, -3.07, -0.0, 3.05,0.75}); //pushing
     // const auto goal_state = r.getStateFromJointValues({0, 0.58, 0, -1.99, 0, 2.6, 0.0}); // -0.2
     // const auto goal_state = r.getStateFromJointValues({0, 0.87, 0, -1.56, 0, 2.42, 0.75}); // -0.4
 

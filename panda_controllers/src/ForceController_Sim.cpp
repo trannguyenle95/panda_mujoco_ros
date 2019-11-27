@@ -152,13 +152,15 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
    kp_force.setIdentity();
    ki_force.setIdentity();
    if (sim == 1){
-     kp_pos(0,0)= 300;
+     kp_pos(0,0)= 10; //300 for z
      kp_pos(1,1)= 2000;
      kp_pos(2,2)= 2000; //works
      kp_ori *= 1000;
      // PI forcefeedback gains
      kp_force *= 0.005;
-     ki_force *= 0.009;
+     ki_force *= 0.008; //for x
+     // kp_force *= 0.005; for
+     // ki_force *= 0.004; //for z
    }
    if (sim == 0){
      kp_pos(0,0)= 0; // 10 each
@@ -166,19 +168,21 @@ void ForceController::update(const ros::Time &time, const ros::Duration &period)
      kp_pos(2,2)= 25; //25
      kp_ori *= 0;
      kp_force *= 0.005;
-     ki_force *= 0.008;
+     ki_force *= 0.008; //for x
    }
    //// set the desired force and calculate the force error.
    Eigen:: Matrix<double,6,1> f_desired;
    Eigen:: Matrix<double,6,1> err_force;
-   f_desired << 12,0,0,0,0,0; //force desired in z axis
+   // f_desired << 12,0,0,0,0,0; //force desired in x axis
+   f_desired << 20,0,0,0,0,0; //force desired in z axis
    err_force = f_desired - f_current;
    err_force_int += err_force*period.toSec(); //integral term of force error
 
   //// calculate new pos in global frame
    Eigen::VectorXd force_ctrl(6);
    force_ctrl = kp_force*err_force + ki_force*err_force_int;
-   pos_desired[0] += force_ctrl[0];
+   pos_desired[0] += force_ctrl[0]; //x axis
+   // pos_desired[2] += force_ctrl[2]; //z axis
 
    //// motion control
    Eigen::VectorXd err_pos(3); err_pos.setZero(); // error in position
